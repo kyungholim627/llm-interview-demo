@@ -1,4 +1,5 @@
 import json
+import re
 import time
 from pathlib import Path
 
@@ -30,41 +31,50 @@ def load_data():
                 "correct_answer": item.get("correct_answer", ""),
                 "response": item.get("response", ""),
                 "is_correct": item.get("is_correct", False),
-                "metadata": item.get("metadata", {}),
                 "category": item.get("category", "")
             })
 
     return rows
 
 
-def normalize_text(text):
-    return (
-        str(text)
-        .replace("\\n", "\n")
-        .replace("\r\n", "\n")
-        .replace("\r", "\n")
-        .replace('"', "")
-        .replace("“", "")
-        .replace("”", "")
-        .replace("’", "'")
-        .strip()
-    )
+def normalize_for_matching(text):
+    """
+    Make prompt matching robust by removing differences caused by:
+    - line breaks
+    - literal \\n text
+    - backslashes
+    - quotation marks
+    - all whitespace
+    """
+    text = str(text)
 
+    text = text.replace("\\n", "")
+    text = text.replace("\n", "")
+    text = text.replace("\r", "")
+    text = text.replace("\\", "")
 
-def compact_text(text):
-    return " ".join(normalize_text(text).split())
+    text = text.replace('"', "")
+    text = text.replace("'", "")
+    text = text.replace("“", "")
+    text = text.replace("”", "")
+    text = text.replace("‘", "")
+    text = text.replace("’", "")
+
+    text = re.sub(r"\s+", "", text)
+
+    return text.lower()
 
 
 def find_matching_prompt(user_prompt, rows):
-    user_prompt_clean = compact_text(user_prompt)
+    user_prompt_clean = normalize_for_matching(user_prompt)
 
     for row in rows:
-        row_prompt_clean = compact_text(row["prompt"])
+        row_prompt_clean = normalize_for_matching(row["prompt"])
         if row_prompt_clean == user_prompt_clean:
             return row
 
     for row in rows:
-        row_prompt_clean = compact_text(row["prompt"])
+        row_prompt_clean = normalize_for_matching(row["prompt"])
         if user_prompt_clean in row_prompt_clean or row_prompt_clean in user_prompt_clean:
             return row
 
@@ -75,7 +85,7 @@ def stream_response(text, delay=0.02):
     placeholder = st.empty()
     printed = ""
 
-    for char in text:
+    for char in str(text):
         printed += char
         placeholder.markdown(printed)
         time.sleep(delay)
@@ -102,10 +112,6 @@ model_rows = [
     row for row in rows
     if row["model"] == selected_model
 ]
-
-
-st.sidebar.divider()
-st.sidebar.write(f"Loaded cases for selected model: **{len(model_rows)}**")
 
 
 st.subheader("Input Prompt")
@@ -147,10 +153,3 @@ if run_button:
         st.success("True — the model answer is correct.")
     else:
         st.error("False — the model answer is incorrect.")
-
-    with st.expander("Metadata"):
-        st.json({
-            "model": matched["model"],
-            "category": matched["category"],
-            "metadata": matched["metadata"]
-        })
