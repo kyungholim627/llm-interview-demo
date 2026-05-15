@@ -1,4 +1,5 @@
 import json
+import random
 import re
 import time
 from pathlib import Path
@@ -38,14 +39,6 @@ def load_data():
 
 
 def normalize_for_matching(text):
-    """
-    Make prompt matching robust by removing differences caused by:
-    - line breaks
-    - literal \\n text
-    - backslashes
-    - quotation marks
-    - all whitespace
-    """
     text = str(text)
 
     text = text.replace("\\n", "")
@@ -81,14 +74,33 @@ def find_matching_prompt(user_prompt, rows):
     return None
 
 
-def stream_response(text, delay=0.02):
+def stream_response(
+    text,
+    initial_delay=1.2,
+    min_delay=0.006,
+    max_delay=0.028,
+    pause_after_sentence=0.12
+):
+    """
+    Simulates real-time response generation.
+    - initial_delay: delay before response starts
+    - min_delay/max_delay: random typing speed range per character
+    - pause_after_sentence: extra pause after sentence-ending punctuation
+    """
     placeholder = st.empty()
     printed = ""
+
+    with st.spinner("Generating model response..."):
+        time.sleep(initial_delay)
 
     for char in str(text):
         printed += char
         placeholder.markdown(printed)
-        time.sleep(delay)
+
+        if char in [".", "!", "?", "\n"]:
+            time.sleep(pause_after_sentence)
+        else:
+            time.sleep(random.uniform(min_delay, max_delay))
 
 
 rows = load_data()
@@ -146,9 +158,19 @@ if run_button:
     st.info(matched["correct_answer"])
 
     st.subheader("Model Response")
-    stream_response(matched["response"], delay=0.02)
+    stream_response(
+        matched["response"],
+        initial_delay=1.2,
+        min_delay=0.006,
+        max_delay=0.028,
+        pause_after_sentence=0.12
+    )
 
     st.subheader("Is Correct?")
+
+    with st.spinner("Evaluating answer..."):
+        time.sleep(1.5)
+
     if matched["is_correct"]:
         st.success("True — the model answer is correct.")
     else:
