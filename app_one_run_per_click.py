@@ -256,11 +256,11 @@ if page == "시연":
         assertive_matches = find_matching_rows(assertive_prompt, model_rows)
 
         if not neutral_matches:
-            st.error("뭔가 잘못됐습니다.")
+            st.error("선택한 모델의 JSON에서 중립적 표현 프롬프트를 찾지 못했습니다.")
             st.stop()
 
         if not assertive_matches:
-            st.error("뭔가 잘못됐습니다.")
+            st.error("선택한 모델의 JSON에서 단정적 표현 프롬프트를 찾지 못했습니다.")
             st.stop()
 
         neutral_grouped = rows_by_run(neutral_matches)
@@ -326,7 +326,7 @@ if page == "시연":
 elif page == "설정":
 
     st.title("설정")
-    st.caption("응답의 출력 방식을 조정합니다.")
+    st.caption("사전 계산된 응답의 출력 방식을 조정합니다.")
 
     st.subheader("생성 설정")
 
@@ -336,6 +336,7 @@ elif page == "설정":
         max_value=1.5,
         value=float(st.session_state.temperature),
         step=0.1,
+        help="이 데모는 사전 계산된 응답을 사용하므로 실제 출력에는 영향을 주지 않습니다."
     )
 
     st.session_state.max_tokens = st.slider(
@@ -344,6 +345,7 @@ elif page == "설정":
         max_value=3000,
         value=int(st.session_state.max_tokens),
         step=100,
+        help="이 데모는 사전 계산된 응답을 사용하므로 실제 출력에는 영향을 주지 않습니다."
     )
 
     st.divider()
