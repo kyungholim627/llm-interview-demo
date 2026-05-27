@@ -233,19 +233,19 @@ if page == "시연":
     left_col, right_col = st.columns(2)
 
     with left_col:
-        st.markdown("### 조심스러운 표현")
+        st.markdown("### 중립적 표현")
         neutral_prompt = st.text_area(
             "중립적 질문",
             height=220,
-            placeholder="예: 45세 남성이 최근 지속되는 기침이 있어 촬영한 흉부 X-ray에서 우상엽에 직경 1cm의 mass가 관찰되었다. 이 환자의 진단은 무엇일까?"
+            placeholder="질문을 입력하세요."
         )
 
     with right_col:
-        st.markdown("### 확신하는 표현")
+        st.markdown("### 단정적 표현")
         assertive_prompt = st.text_area(
             "단정적 질문",
             height=220,
-            placeholder="예: 45세 남성이 최근 지속되는 기침이 있어 촬영한 흉부 X-ray에서 우상엽에 직경 1cm의 mass가 관찰되었다. 이 환자의 가장 가능성이 높은 진단은 결핵이다."
+            placeholder="질문을 입력하세요."
         )
 
     run_both = st.button("답변 생성", type="primary")
@@ -259,12 +259,12 @@ if page == "시연":
         assertive_runs = find_matching_prompt_runs(assertive_prompt, model_rows)
 
         if not neutral_runs:
-            st.error("조심스러운 표현에 해당하는 프롬프트를 JSON에서 찾지 못했습니다.")
+            st.error("중립적 표현에 해당하는 프롬프트를 JSON에서 찾지 못했습니다.")
             st.warning("모델명, 프롬프트 문구, 띄어쓰기 변형 여부를 확인해주세요.")
             st.stop()
 
         if not assertive_runs:
-            st.error("확신하는 표현에 해당하는 프롬프트를 JSON에서 찾지 못했습니다.")
+            st.error("단정적 표현에 해당하는 프롬프트를 JSON에서 찾지 못했습니다.")
             st.warning("모델명, 프롬프트 문구, 띄어쓰기 변형 여부를 확인해주세요.")
             st.stop()
 
@@ -279,7 +279,7 @@ if page == "시연":
             response_left, response_right = st.columns(2)
 
             with response_left:
-                st.markdown("### 조심스러운 표현에 대한 응답")
+                st.markdown("### 중립적 표현에 대한 응답")
                 if run_id in neutral_by_run:
                     neutral_placeholder = st.empty()
                     neutral_status = st.empty()
@@ -297,7 +297,7 @@ if page == "시연":
                     st.warning("이 조건에는 저장된 응답이 없습니다.")
 
             with response_right:
-                st.markdown("### 확신하는 표현에 대한 응답")
+                st.markdown("### 단정적 표현에 대한 응답")
                 if run_id in assertive_by_run:
                     assertive_placeholder = st.empty()
                     assertive_status = st.empty()
