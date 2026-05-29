@@ -65,24 +65,18 @@ header[data-testid="stHeader"] {
     display: none !important;
 }
 
-/* Sidebar toggle arrow — make it clearly visible */
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    background: #1a2035 !important;
-    border: 1px solid #2a3a55 !important;
-    border-radius: 0 8px 8px 0 !important;
-    color: #c9d1e0 !important;
-    padding: 0.5rem 0.6rem !important;
-    margin-top: 0.5rem !important;
-    box-shadow: 2px 0 8px rgba(0,0,0,0.4) !important;
-    z-index: 9999 !important;
+/* ── Spinner animation (shown while "thinking") ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.ai-spinner {
+    display: flex; align-items: center; gap: 0.75rem;
+    padding: 0.85rem 0; color: #8b96b0; font-size: 0.9rem;
 }
-[data-testid="collapsedControl"]:hover {
-    background: #2563eb !important;
-    color: #fff !important;
-    border-color: #2563eb !important;
+.ai-spinner .ring {
+    width: 22px; height: 22px; flex-shrink: 0;
+    border: 2.5px solid #1e2a40;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.75s linear infinite;
 }
 
 /* Main content area — limit width, remove excess padding */
@@ -183,6 +177,50 @@ label[data-testid="stWidgetLabel"] { color: #c9d1e0 !important; font-size: 0.88r
 </style>
 """, unsafe_allow_html=True)
 
+# ── Sidebar toggle: JS injection (CSS alone is unreliable across versions) ────
+components.html("""
+<script>
+(function styleToggle() {
+    var doc = window.parent.document;
+    // Streamlit uses different data-testid values across versions; try all.
+    var selectors = [
+        '[data-testid="collapsedControl"]',
+        '[data-testid="stSidebarCollapsedControl"]',
+        'button[aria-label="Open sidebar"]',
+        'button[title="Open sidebar"]',
+    ];
+    var found = false;
+    selectors.forEach(function(sel) {
+        var els = doc.querySelectorAll(sel);
+        els.forEach(function(el) {
+            el.style.cssText = [
+                'display:flex!important',
+                'visibility:visible!important',
+                'opacity:1!important',
+                'background:#1a2035!important',
+                'border:1px solid #2a3a55!important',
+                'border-radius:0 8px 8px 0!important',
+                'color:#c9d1e0!important',
+                'padding:6px 10px!important',
+                'margin-top:8px!important',
+                'cursor:pointer!important',
+                'box-shadow:2px 2px 10px rgba(0,0,0,0.5)!important',
+                'z-index:9999!important',
+                'position:fixed!important',
+                'left:0!important',
+                'top:60px!important',
+            ].join(';');
+            el.onmouseenter = function(){ el.style.background='#2563eb'; el.style.color='#fff'; };
+            el.onmouseleave = function(){ el.style.background='#1a2035'; el.style.color='#c9d1e0'; };
+            found = true;
+        });
+    });
+    // Retry until found (Streamlit renders async)
+    if (!found) setTimeout(styleToggle, 300);
+})();
+</script>
+""", height=0, scrolling=False)
+
 # ── Config ────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
 DATA_FILE = BASE_DIR / "precomputed_medical_demo_answers.json"
@@ -242,19 +280,46 @@ def find_match(user_prompt, rows):
     return random.choice(partial) if partial else None
 
 
+def _ai_bubble(content, cursor=False):
+    """Wrap content in the AI chat bubble HTML."""
+    suffix = "▌" if cursor else ""
+    escaped = (content
+               .replace("&", "&amp;")
+               .replace("<", "&lt;")
+               .replace(">", "&gt;"))
+    return (
+        f'<div class="chat-ai">'
+        f'<div class="av">🩺</div>'
+        f'<div class="bubble">{escaped}{suffix}</div>'
+        f'</div>'
+    )
+
+
 def stream_text(text, placeholder):
+    # 1. Spinner phase: ~2.5 s "thinking" animation
+    spinner_html = (
+        '<div class="chat-ai">'
+        '<div class="av">🩺</div>'
+        '<div class="ai-spinner"><div class="ring"></div>Generating response…</div>'
+        '</div>'
+    )
+    placeholder.markdown(spinner_html, unsafe_allow_html=True)
+    time.sleep(2.5)
+
+    # 2. Output phase
     if not st.session_state.use_streaming:
-        placeholder.markdown(text)
+        placeholder.markdown(_ai_bubble(text), unsafe_allow_html=True)
         return
+
     printed = ""
     for char in str(text):
         printed += char
-        placeholder.markdown(printed + "▌")
+        placeholder.markdown(_ai_bubble(printed, cursor=True), unsafe_allow_html=True)
         if char in [".", "!", "?", "。", "\n", "다", "요"]:
             time.sleep(0.06)
         else:
             time.sleep(random.uniform(0.004, 0.018))
-    placeholder.markdown(printed)
+    placeholder.markdown(_ai_bubble(printed), unsafe_allow_html=True)
 
 
 def bubble_html(role, content):
@@ -393,10 +458,8 @@ with chat_area:
         # Show the new user bubble immediately (above the input bar)
         st.markdown(bubble_html("user", user_prompt), unsafe_allow_html=True)
 
-        # Stream the AI response (also above the input bar, inside chat_area)
-        st.markdown('<div class="chat-ai"><div class="av">🩺</div>', unsafe_allow_html=True)
+        # ai_slot holds spinner → then streams text (stream_text handles both)
         ai_slot = st.empty()
-        st.markdown("</div>", unsafe_allow_html=True)
         stream_text(matched["response"], ai_slot)
 
         # Commit to history, clear the input field, rerender
