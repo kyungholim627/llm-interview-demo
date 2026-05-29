@@ -65,6 +65,26 @@ header[data-testid="stHeader"] {
     display: none !important;
 }
 
+/* Sidebar toggle arrow — make it clearly visible */
+[data-testid="collapsedControl"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    background: #1a2035 !important;
+    border: 1px solid #2a3a55 !important;
+    border-radius: 0 8px 8px 0 !important;
+    color: #c9d1e0 !important;
+    padding: 0.5rem 0.6rem !important;
+    margin-top: 0.5rem !important;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.4) !important;
+    z-index: 9999 !important;
+}
+[data-testid="collapsedControl"]:hover {
+    background: #2563eb !important;
+    color: #fff !important;
+    border-color: #2563eb !important;
+}
+
 /* Main content area — limit width, remove excess padding */
 .main .block-container {
     max-width: 820px !important;
@@ -167,9 +187,14 @@ label[data-testid="stWidgetLabel"] { color: #c9d1e0 !important; font-size: 0.88r
 BASE_DIR = Path(__file__).parent
 DATA_FILE = BASE_DIR / "precomputed_medical_demo_answers.json"
 
-for k, v in {"use_streaming": True, "show_evaluation": False, "chat_history": []}.items():
+for k, v in {"use_streaming": True, "show_evaluation": False, "chat_history": [], "_clear_input": False}.items():
     if k not in st.session_state:
         st.session_state[k] = v
+
+# Clear the textarea BEFORE any widget with key="input_box" is created.
+if st.session_state._clear_input:
+    st.session_state["input_box"] = ""
+    st.session_state._clear_input = False
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -377,5 +402,5 @@ with chat_area:
         # Commit to history, clear the input field, rerender
         st.session_state.chat_history.append({"role": "user", "content": user_prompt, "meta": None})
         st.session_state.chat_history.append({"role": "ai",   "content": matched["response"], "meta": matched})
-        st.session_state["input_box"] = ""   # clears the textarea on rerun
+        st.session_state._clear_input = True   # cleared at top of next run, before widget renders
         st.rerun()
