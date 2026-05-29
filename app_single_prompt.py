@@ -5,69 +5,138 @@ import time
 from pathlib import Path
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 st.set_page_config(
     page_title="Medical AI Assistant",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="collapsed",   # sidebar hidden by default
+    initial_sidebar_state="collapsed",
 )
 
 # ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* ── Global ── */
-html, body, [data-testid="stAppViewContainer"] {
+/* ─── Reset & full-viewport layout ─────────────────────────────────── */
+html, body {
+    height: 100vh;
+    overflow: hidden;
+    margin: 0; padding: 0;
     background: #0f1117;
     color: #e8eaf0;
     font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
-/* ── Hide Streamlit chrome ── */
-#MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+/* The Streamlit header floats transparently — no layout space consumed. */
+/* This keeps the sidebar-toggle arrow (>) visible at top-left.          */
+header[data-testid="stHeader"] {
+    position: fixed !important;
+    top: 0; left: 0; right: 0;
+    height: 2.75rem !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    z-index: 1000;
+}
+
+/* Hide hamburger menu and toolbar inside the header; keep the toggle. */
+#MainMenu,
+footer,
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
     display: none !important;
 }
 
-/* ── Sidebar toggle button (the >> arrow Streamlit renders) ── */
+/* Style the sidebar-toggle arrow so it's clearly visible. */
 [data-testid="collapsedControl"] {
-    color: #8b96b0 !important;
+    top: 0.45rem !important;
+    left: 0.55rem !important;
     background: #161b27 !important;
-    border-radius: 0 8px 8px 0 !important;
-    border: 1px solid #1e2535 !important;
-    border-left: none !important;
+    border: 1px solid #2a3347 !important;
+    border-radius: 8px !important;
+    color: #c9d1e0 !important;
+    padding: 0.25rem 0.55rem !important;
 }
 [data-testid="collapsedControl"]:hover {
-    background: #1e2535 !important;
+    background: #1e2a40 !important;
     color: #ffffff !important;
+}
+
+/* Push block-container below the floating header and remove all padding. */
+.main .block-container {
+    padding: 2.75rem 0 0 0 !important;
+    margin: 0 auto !important;
+    max-width: 820px !important;
+    height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+}
+
+/* The top-level vertical block (Streamlit's wrapper) must also flex. */
+.main .block-container > div[data-testid="stVerticalBlock"] {
+    flex: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+}
+
+/* ── Chat pane: first child of the vertical block = scrollable ── */
+.main .block-container > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"]:first-child {
+    flex: 1 !important;
+    overflow-y: auto !important;
+    min-height: 0 !important;
+    padding: 0.75rem 1.25rem 0.5rem !important;
+    /* Thin scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #2a3347 transparent;
+}
+.main .block-container > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"]:first-child::-webkit-scrollbar {
+    width: 5px;
+}
+.main .block-container > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"]:first-child::-webkit-scrollbar-track {
+    background: transparent;
+}
+.main .block-container > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"]:first-child::-webkit-scrollbar-thumb {
+    background: #2a3347;
+    border-radius: 3px;
+}
+
+/* ── Input pane: last child = fixed height ── */
+.main .block-container > div[data-testid="stVerticalBlock"]
+  > div[data-testid="stVerticalBlockBorderWrapper"]:last-child {
+    flex-shrink: 0 !important;
+    background: #0f1117;
+    border-top: 1px solid #1a2035;
+    padding: 0.65rem 1.25rem 0.85rem !important;
 }
 
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
     background: #161b27 !important;
     border-right: 1px solid #1e2535;
+    top: 0 !important;
 }
 [data-testid="stSidebar"] * { color: #c9d1e0 !important; }
 [data-testid="stSidebar"] hr { border-color: #1e2535 !important; }
 [data-testid="stSidebar"] h1 {
-    font-size: 1.05rem !important;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #ffffff !important;
+    font-size: 1.05rem !important; font-weight: 700;
+    letter-spacing: -0.02em; color: #fff !important;
 }
 [data-testid="stSidebar"] h3 {
-    font-size: 0.72rem !important;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: #6b7a9a !important;
-    margin-top: 1.1rem !important;
+    font-size: 0.72rem !important; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    color: #6b7a9a !important; margin-top: 1.1rem !important;
 }
 [data-testid="stSidebar"] .stRadio label {
-    padding: 0.4rem 0.6rem;
-    border-radius: 7px;
-    display: block;
-    font-size: 0.88rem;
-    transition: background 0.15s;
+    padding: 0.4rem 0.6rem; border-radius: 7px;
+    display: block; font-size: 0.88rem; transition: background 0.15s;
 }
 [data-testid="stSidebar"] .stRadio label:hover { background: #1e2535; }
 [data-testid="stSidebar"] .stTextInput input {
@@ -79,106 +148,63 @@ html, body, [data-testid="stAppViewContainer"] {
 }
 [data-testid="stSidebar"] .stRadio > label:first-child { display: none; }
 
-/* ── Main area ── */
-.main .block-container {
-    max-width: 820px;
-    margin: 0 auto;
-    padding: 1.5rem 1.5rem 0;
+/* ── Chat bubbles ── */
+.chat-user {
+    display: flex; justify-content: flex-end; margin: 0.6rem 0;
+}
+.chat-user .bubble {
+    background: #2563eb; color: #fff;
+    padding: 0.7rem 1.05rem;
+    border-radius: 18px 18px 4px 18px;
+    max-width: 70%; font-size: 0.92rem;
+    line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+}
+.chat-ai {
+    display: flex; align-items: flex-start;
+    gap: 0.65rem; margin: 0.6rem 0;
+}
+.chat-ai .av {
+    flex-shrink: 0; width: 32px; height: 32px;
+    background: linear-gradient(135deg, #2563eb, #7c3aed);
+    border-radius: 50%; display: flex; align-items: center;
+    justify-content: center; font-size: 0.85rem; color: white;
+}
+.chat-ai .bubble {
+    background: #1a2035; color: #e8eaf0;
+    padding: 0.8rem 1.1rem;
+    border-radius: 4px 18px 18px 18px;
+    max-width: 82%; font-size: 0.92rem;
+    line-height: 1.72; border: 1px solid #1e2a40;
+    white-space: pre-wrap; word-break: break-word;
 }
 
 /* ── Welcome screen ── */
 .welcome-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    min-height: 55vh;
-    text-align: center;
-    gap: 0.5rem;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    height: 100%; min-height: 280px;
+    text-align: center; gap: 0.45rem; padding: 2rem 0;
 }
-.welcome-wrap .w-icon { font-size: 2.6rem; }
+.welcome-wrap .w-icon { font-size: 2.4rem; }
 .welcome-wrap h2 {
-    color: #ffffff;
-    font-size: 1.35rem;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.02em;
+    color: #fff; font-size: 1.3rem; font-weight: 700;
+    margin: 0; letter-spacing: -0.02em;
 }
 .welcome-wrap p {
-    color: #6b7a9a;
-    font-size: 0.9rem;
-    max-width: 420px;
-    line-height: 1.6;
-    margin: 0.3rem 0 0;
+    color: #6b7a9a; font-size: 0.88rem;
+    max-width: 400px; line-height: 1.6; margin: 0.2rem 0 0;
 }
 
-/* ── Chat bubbles ── */
-.chat-user {
-    display: flex;
-    justify-content: flex-end;
-    margin: 0.85rem 0;
-}
-.chat-user .bubble {
-    background: #2563eb;
-    color: #ffffff;
-    padding: 0.7rem 1.05rem;
-    border-radius: 18px 18px 4px 18px;
-    max-width: 70%;
-    font-size: 0.92rem;
-    line-height: 1.55;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-.chat-ai {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    margin: 0.85rem 0;
-}
-.chat-ai .av {
-    flex-shrink: 0;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, #2563eb, #7c3aed);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    color: white;
-}
-.chat-ai .bubble {
-    background: #1a2035;
-    color: #e8eaf0;
-    padding: 0.8rem 1.1rem;
-    border-radius: 4px 18px 18px 18px;
-    max-width: 82%;
-    font-size: 0.92rem;
-    line-height: 1.72;
-    border: 1px solid #1e2a40;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-/* ── Input bar ── */
-.input-bar {
-    position: sticky;
-    bottom: 0;
-    background: #0f1117;
-    padding: 0.9rem 0 1rem;
-    border-top: 1px solid #1a2035;
-    z-index: 100;
-}
+/* ── Input textarea ── */
 .stTextArea textarea {
     background: #1a2035 !important;
     border: 1px solid #1e2a40 !important;
     border-radius: 14px !important;
     color: #e8eaf0 !important;
-    font-size: 0.93rem !important;
-    padding: 0.8rem 1rem !important;
+    font-size: 0.92rem !important;
+    padding: 0.75rem 1rem !important;
     resize: none !important;
     box-shadow: none !important;
-    transition: border-color 0.15s, box-shadow 0.15s;
 }
 .stTextArea textarea:focus {
     border-color: #2563eb !important;
@@ -189,36 +215,27 @@ html, body, [data-testid="stAppViewContainer"] {
 /* ── Buttons ── */
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 0.62rem 1.4rem !important;
-    font-weight: 600 !important;
-    font-size: 0.87rem !important;
-    transition: opacity 0.15s !important;
-    height: 100%;
+    color: white !important; border: none !important;
+    border-radius: 10px !important; padding: 0.62rem 1.4rem !important;
+    font-weight: 600 !important; font-size: 0.87rem !important;
+    transition: opacity 0.15s !important; height: 100%;
 }
 .stButton > button[kind="primary"]:hover { opacity: 0.85 !important; }
 .stButton > button[kind="secondary"] {
-    background: #1a2035 !important;
-    color: #8b96b0 !important;
-    border: 1px solid #1e2a40 !important;
-    border-radius: 10px !important;
+    background: #1a2035 !important; color: #8b96b0 !important;
+    border: 1px solid #1e2a40 !important; border-radius: 10px !important;
     font-size: 0.82rem !important;
 }
 .stButton > button[kind="secondary"]:hover {
-    background: #1e2535 !important;
-    color: #c9d1e0 !important;
+    background: #1e2535 !important; color: #c9d1e0 !important;
 }
 
 /* ── Misc ── */
 hr { border-color: #1a2035 !important; }
 .stAlert { border-radius: 10px !important; font-size: 0.87rem !important; }
 .streamlit-expanderHeader {
-    background: #1a2035 !important;
-    border-radius: 8px !important;
-    color: #8b96b0 !important;
-    font-size: 0.83rem !important;
+    background: #1a2035 !important; border-radius: 8px !important;
+    color: #8b96b0 !important; font-size: 0.83rem !important;
 }
 label[data-testid="stWidgetLabel"] { color: #c9d1e0 !important; font-size: 0.88rem !important; }
 .stToggle label { color: #c9d1e0 !important; }
@@ -299,18 +316,47 @@ def stream_text(text, placeholder):
 
 
 def bubble_html(role, content):
-    content_escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    escaped = (content
+               .replace("&", "&amp;")
+               .replace("<", "&lt;")
+               .replace(">", "&gt;"))
     if role == "user":
-        return f'<div class="chat-user"><div class="bubble">{content_escaped}</div></div>'
+        return f'<div class="chat-user"><div class="bubble">{escaped}</div></div>'
     return (
         f'<div class="chat-ai">'
         f'<div class="av">🩺</div>'
-        f'<div class="bubble">{content_escaped}</div>'
+        f'<div class="bubble">{escaped}</div>'
         f'</div>'
     )
 
 
-# ── Sidebar (collapsed by default, >> button reveals it) ─────────────────────
+def scroll_chat_to_bottom():
+    """Inject JS that scrolls the chat pane to its bottom after each render."""
+    components.html("""
+    <script>
+    (function() {
+        function scrollChat() {
+            // Walk up from this iframe to find the first scrollable chat pane.
+            var doc = window.parent.document;
+            // The chat pane is the first stVerticalBlockBorderWrapper inside block-container.
+            var wrappers = doc.querySelectorAll(
+                '.main .block-container [data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"]'
+            );
+            if (wrappers.length > 0) {
+                var pane = wrappers[0];
+                pane.scrollTop = pane.scrollHeight;
+            }
+        }
+        // Run immediately and after a short delay to catch late renders.
+        scrollChat();
+        setTimeout(scrollChat, 120);
+        setTimeout(scrollChat, 400);
+    })();
+    </script>
+    """, height=0, scrolling=False)
+
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
 rows = load_data()
 
 with st.sidebar:
@@ -319,18 +365,16 @@ with st.sidebar:
 
     st.markdown("### Model")
     backend = st.radio("backend", ["Local (Ollama)", "OpenAI API"], label_visibility="collapsed")
-
     if backend == "Local (Ollama)":
-        model_name = st.text_input("Model name", value="gpt-oss:latest", label_visibility="collapsed")
+        model_name = st.text_input("name", value="gpt-oss:latest", label_visibility="collapsed")
     else:
-        model_name = st.text_input("Model name", value="gpt-4o-mini", label_visibility="collapsed")
+        model_name = st.text_input("name", value="gpt-4o-mini", label_visibility="collapsed")
 
     model_rows = get_rows_for_model(rows, model_name)
-
     if not model_rows:
-        st.warning("No data found for this model name.")
+        st.warning("No data found for this model.")
     elif all(str(r.get("model", "")).strip() == "" for r in model_rows):
-        st.caption("Using default dataset (blank model field)")
+        st.caption("Using default dataset")
 
     st.divider()
     st.markdown("### Options")
@@ -343,32 +387,34 @@ with st.sidebar:
         st.rerun()
 
 
-# ── Main layout: chat area ABOVE, input bar BELOW ────────────────────────────
+# ── Guard ─────────────────────────────────────────────────────────────────────
 if not rows:
-    st.error(f"Data file not found: `{DATA_FILE.name}`. Place it in the same folder as app.py.")
+    st.error(f"Data file not found: `{DATA_FILE.name}`. Place it next to app.py.")
     st.stop()
 
-# Define containers top-to-bottom so chat always renders above input.
+# ── Layout: chat_area (scrollable, flex-grows) ── then ── input_area (fixed) ─
+#
+# Streamlit renders containers in the order they are *created*, not filled.
+# Creating chat_area first means it appears above input_area on screen, even
+# though we write to input_area first in code.
 chat_area = st.container()
 input_area = st.container()
 
-# ── Input bar (defined second = renders below chat) ──────────────────────────
+# ── Input bar ────────────────────────────────────────────────────────────────
 with input_area:
-    st.markdown('<div class="input-bar">', unsafe_allow_html=True)
-    col_input, col_btn = st.columns([6, 1], vertical_alignment="bottom")
-    with col_input:
+    col_txt, col_btn = st.columns([6, 1], vertical_alignment="bottom")
+    with col_txt:
         user_prompt = st.text_area(
             "prompt",
-            height=72,
+            height=68,
             placeholder="Describe the clinical situation…",
             label_visibility="collapsed",
             key="input_box",
         )
     with col_btn:
         send = st.button("Send →", type="primary", use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
 
-# ── Chat area (defined first = renders above input) ───────────────────────────
+# ── Chat pane ────────────────────────────────────────────────────────────────
 with chat_area:
     if not st.session_state.chat_history:
         st.markdown("""
@@ -399,7 +445,10 @@ with chat_area:
                         "framing": meta.get("framing", ""),
                     })
 
-    # ── Streaming happens here, inside chat_area, so it appears above input ──
+        # Scroll to bottom after rendering history
+        scroll_chat_to_bottom()
+
+    # ── Handle send (streaming stays inside chat_area, above input_area) ──
     if send:
         if not user_prompt.strip():
             st.warning("Please enter a prompt before sending.")
@@ -410,20 +459,20 @@ with chat_area:
             st.error("No matching pre-computed response found. Check the prompt wording.")
             st.stop()
 
-        # Show the new user bubble immediately
+        # Show new user bubble
         st.markdown(bubble_html("user", user_prompt), unsafe_allow_html=True)
 
-        # Stream AI response inside chat_area (above the input bar)
+        # Stream AI response — inside chat_area so it appears above the input bar
         st.markdown(
             '<div class="chat-ai"><div class="av">🩺</div>',
             unsafe_allow_html=True,
         )
-        ai_placeholder = st.empty()
+        ai_slot = st.empty()
         st.markdown("</div>", unsafe_allow_html=True)
 
-        stream_text(matched["response"], ai_placeholder)
+        stream_text(matched["response"], ai_slot)
 
-        # Commit to history then rerender cleanly
+        # Commit to history and rerender
         st.session_state.chat_history.append({"role": "user", "content": user_prompt, "meta": None})
         st.session_state.chat_history.append({"role": "ai", "content": matched["response"], "meta": matched})
         st.rerun()
