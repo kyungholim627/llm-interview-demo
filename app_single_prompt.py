@@ -10,10 +10,10 @@ st.set_page_config(
     page_title="Medical AI Assistant",
     page_icon="🩺",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",   # sidebar hidden by default
 )
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
+# ── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
 /* ── Global ── */
@@ -23,213 +23,217 @@ html, body, [data-testid="stAppViewContainer"] {
     font-family: 'Inter', 'Segoe UI', sans-serif;
 }
 
+/* ── Hide Streamlit chrome ── */
+#MainMenu, footer, [data-testid="stToolbar"], [data-testid="stDecoration"] {
+    display: none !important;
+}
+
+/* ── Sidebar toggle button (the >> arrow Streamlit renders) ── */
+[data-testid="collapsedControl"] {
+    color: #8b96b0 !important;
+    background: #161b27 !important;
+    border-radius: 0 8px 8px 0 !important;
+    border: 1px solid #1e2535 !important;
+    border-left: none !important;
+}
+[data-testid="collapsedControl"]:hover {
+    background: #1e2535 !important;
+    color: #ffffff !important;
+}
+
 /* ── Sidebar ── */
 [data-testid="stSidebar"] {
     background: #161b27 !important;
     border-right: 1px solid #1e2535;
-    padding-top: 0.5rem;
 }
-[data-testid="stSidebar"] * {
-    color: #c9d1e0 !important;
-}
-[data-testid="stSidebar"] .stRadio label {
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    display: block;
-    transition: background 0.15s;
-}
-[data-testid="stSidebar"] .stRadio label:hover {
-    background: #1e2535;
-}
-[data-testid="stSidebar"] hr {
-    border-color: #1e2535 !important;
-}
+[data-testid="stSidebar"] * { color: #c9d1e0 !important; }
+[data-testid="stSidebar"] hr { border-color: #1e2535 !important; }
 [data-testid="stSidebar"] h1 {
-    font-size: 1.1rem !important;
+    font-size: 1.05rem !important;
     font-weight: 700;
     letter-spacing: -0.02em;
     color: #ffffff !important;
 }
-[data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
-    font-size: 0.78rem !important;
+[data-testid="stSidebar"] h3 {
+    font-size: 0.72rem !important;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.07em;
+    letter-spacing: 0.08em;
     color: #6b7a9a !important;
-    margin-top: 1.2rem !important;
+    margin-top: 1.1rem !important;
 }
-
-/* ── Hide Streamlit chrome ── */
-#MainMenu, footer, header, [data-testid="stToolbar"] { display: none !important; }
-[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stSidebar"] .stRadio label {
+    padding: 0.4rem 0.6rem;
+    border-radius: 7px;
+    display: block;
+    font-size: 0.88rem;
+    transition: background 0.15s;
+}
+[data-testid="stSidebar"] .stRadio label:hover { background: #1e2535; }
+[data-testid="stSidebar"] .stTextInput input {
+    background: #0f1117 !important;
+    border: 1px solid #1e2535 !important;
+    border-radius: 8px !important;
+    color: #e8eaf0 !important;
+    font-size: 0.85rem !important;
+}
+[data-testid="stSidebar"] .stRadio > label:first-child { display: none; }
 
 /* ── Main area ── */
 .main .block-container {
-    max-width: 860px;
+    max-width: 820px;
     margin: 0 auto;
-    padding: 2rem 1.5rem 7rem;
+    padding: 1.5rem 1.5rem 0;
 }
 
-/* ── Chat messages ── */
+/* ── Welcome screen ── */
+.welcome-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 55vh;
+    text-align: center;
+    gap: 0.5rem;
+}
+.welcome-wrap .w-icon { font-size: 2.6rem; }
+.welcome-wrap h2 {
+    color: #ffffff;
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+.welcome-wrap p {
+    color: #6b7a9a;
+    font-size: 0.9rem;
+    max-width: 420px;
+    line-height: 1.6;
+    margin: 0.3rem 0 0;
+}
+
+/* ── Chat bubbles ── */
 .chat-user {
     display: flex;
     justify-content: flex-end;
-    margin: 1rem 0;
+    margin: 0.85rem 0;
 }
 .chat-user .bubble {
     background: #2563eb;
     color: #ffffff;
-    padding: 0.75rem 1.1rem;
+    padding: 0.7rem 1.05rem;
     border-radius: 18px 18px 4px 18px;
-    max-width: 72%;
-    font-size: 0.95rem;
+    max-width: 70%;
+    font-size: 0.92rem;
     line-height: 1.55;
     white-space: pre-wrap;
+    word-break: break-word;
 }
-
 .chat-ai {
     display: flex;
     align-items: flex-start;
-    gap: 0.75rem;
-    margin: 1rem 0;
+    gap: 0.65rem;
+    margin: 0.85rem 0;
 }
-.chat-ai .avatar {
+.chat-ai .av {
     flex-shrink: 0;
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     background: linear-gradient(135deg, #2563eb, #7c3aed);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: white;
 }
 .chat-ai .bubble {
     background: #1a2035;
     color: #e8eaf0;
-    padding: 0.85rem 1.2rem;
+    padding: 0.8rem 1.1rem;
     border-radius: 4px 18px 18px 18px;
-    max-width: 80%;
-    font-size: 0.95rem;
-    line-height: 1.7;
+    max-width: 82%;
+    font-size: 0.92rem;
+    line-height: 1.72;
     border: 1px solid #1e2a40;
     white-space: pre-wrap;
+    word-break: break-word;
 }
 
-/* ── Page header ── */
-.page-header {
-    text-align: center;
-    padding: 2.5rem 0 1.5rem;
+/* ── Input bar ── */
+.input-bar {
+    position: sticky;
+    bottom: 0;
+    background: #0f1117;
+    padding: 0.9rem 0 1rem;
+    border-top: 1px solid #1a2035;
+    z-index: 100;
 }
-.page-header h1 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0;
-    letter-spacing: -0.03em;
-}
-.page-header p {
-    color: #6b7a9a;
-    font-size: 0.9rem;
-    margin-top: 0.4rem;
-}
-
-/* ── Welcome card (shown before first message) ── */
-.welcome-card {
-    text-align: center;
-    padding: 4rem 2rem;
-    color: #6b7a9a;
-}
-.welcome-card .icon { font-size: 2.8rem; margin-bottom: 1rem; }
-.welcome-card h2 { color: #c9d1e0; font-size: 1.2rem; font-weight: 600; margin: 0 0 0.5rem; }
-.welcome-card p { font-size: 0.9rem; line-height: 1.6; max-width: 480px; margin: 0 auto; }
-
-/* ── Input area ── */
 .stTextArea textarea {
     background: #1a2035 !important;
     border: 1px solid #1e2a40 !important;
-    border-radius: 12px !important;
+    border-radius: 14px !important;
     color: #e8eaf0 !important;
-    font-size: 0.95rem !important;
-    padding: 0.85rem 1rem !important;
+    font-size: 0.93rem !important;
+    padding: 0.8rem 1rem !important;
     resize: none !important;
     box-shadow: none !important;
+    transition: border-color 0.15s, box-shadow 0.15s;
 }
 .stTextArea textarea:focus {
     border-color: #2563eb !important;
-    box-shadow: 0 0 0 2px rgba(37,99,235,0.2) !important;
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.18) !important;
 }
-.stTextArea textarea::placeholder { color: #4a5568 !important; }
+.stTextArea textarea::placeholder { color: #3d4a63 !important; }
 
-/* ── Send button ── */
+/* ── Buttons ── */
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     color: white !important;
     border: none !important;
     border-radius: 10px !important;
-    padding: 0.65rem 1.6rem !important;
+    padding: 0.62rem 1.4rem !important;
     font-weight: 600 !important;
-    font-size: 0.88rem !important;
-    letter-spacing: 0.01em;
+    font-size: 0.87rem !important;
     transition: opacity 0.15s !important;
+    height: 100%;
 }
-.stButton > button[kind="primary"]:hover { opacity: 0.88 !important; }
-
-/* ── Secondary button ── */
+.stButton > button[kind="primary"]:hover { opacity: 0.85 !important; }
 .stButton > button[kind="secondary"] {
     background: #1a2035 !important;
     color: #8b96b0 !important;
     border: 1px solid #1e2a40 !important;
     border-radius: 10px !important;
-    padding: 0.65rem 1.1rem !important;
-    font-size: 0.85rem !important;
+    font-size: 0.82rem !important;
 }
 .stButton > button[kind="secondary"]:hover {
     background: #1e2535 !important;
     color: #c9d1e0 !important;
 }
 
-/* ── Status / alert boxes ── */
-.stAlert {
-    border-radius: 10px !important;
-    font-size: 0.88rem !important;
-}
-
-/* ── Settings page ── */
-.stSlider > div > div > div { background: #2563eb !important; }
-label[data-testid="stWidgetLabel"] { color: #c9d1e0 !important; font-size: 0.9rem !important; }
-.stToggle label { color: #c9d1e0 !important; }
-
-/* ── Expander ── */
+/* ── Misc ── */
+hr { border-color: #1a2035 !important; }
+.stAlert { border-radius: 10px !important; font-size: 0.87rem !important; }
 .streamlit-expanderHeader {
     background: #1a2035 !important;
     border-radius: 8px !important;
     color: #8b96b0 !important;
-    font-size: 0.85rem !important;
+    font-size: 0.83rem !important;
 }
-
-/* ── Divider ── */
-hr { border-color: #1e2535 !important; }
-
-/* ── Sidebar radio: hide the outer label ── */
-[data-testid="stSidebar"] .stRadio > label:first-child { display: none; }
+label[data-testid="stWidgetLabel"] { color: #c9d1e0 !important; font-size: 0.88rem !important; }
+.stToggle label { color: #c9d1e0 !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# ── Data ─────────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).parent
 DATA_FILE = BASE_DIR / "precomputed_medical_demo_answers.json"
 
-# ── Session state ─────────────────────────────────────────────────────────────
-defaults = {
-    "temperature": 0.7,
-    "max_tokens": 1000,
+for k, v in {
     "use_streaming": True,
     "show_evaluation": False,
-    "chat_history": [],   # list of {"role": "user"|"ai", "content": str, "meta": dict|None}
-}
-for k, v in defaults.items():
+    "chat_history": [],
+}.items():
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -267,9 +271,7 @@ def normalize(text):
 def get_rows_for_model(rows, model):
     model = str(model).strip()
     exact = [r for r in rows if str(r.get("model", "")).strip() == model]
-    if exact:
-        return exact
-    return [r for r in rows if str(r.get("model", "")).strip() == ""]
+    return exact if exact else [r for r in rows if str(r.get("model", "")).strip() == ""]
 
 
 def find_match(user_prompt, rows):
@@ -296,124 +298,124 @@ def stream_text(text, placeholder):
     placeholder.markdown(printed)
 
 
-def render_message(role, content):
+def bubble_html(role, content):
+    content_escaped = content.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
     if role == "user":
-        st.markdown(
-            f'<div class="chat-user"><div class="bubble">{content}</div></div>',
-            unsafe_allow_html=True,
-        )
-    else:
-        st.markdown(
-            f'<div class="chat-ai">'
-            f'<div class="avatar">🩺</div>'
-            f'<div class="bubble">{content}</div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        return f'<div class="chat-user"><div class="bubble">{content_escaped}</div></div>'
+    return (
+        f'<div class="chat-ai">'
+        f'<div class="av">🩺</div>'
+        f'<div class="bubble">{content_escaped}</div>'
+        f'</div>'
+    )
 
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
+# ── Sidebar (collapsed by default, >> button reveals it) ─────────────────────
 rows = load_data()
 
 with st.sidebar:
     st.markdown("## 🩺 Medical AI")
     st.divider()
 
-    page = st.radio("nav", ["대화", "설정"], label_visibility="collapsed")
+    st.markdown("### Model")
+    backend = st.radio("backend", ["Local (Ollama)", "OpenAI API"], label_visibility="collapsed")
 
-    st.divider()
-    st.markdown("### 모델")
-
-    backend = st.radio("backend", ["로컬 (Ollama)", "OpenAI API"], label_visibility="collapsed")
-
-    if backend == "로컬 (Ollama)":
-        model_name = st.text_input("모델 이름", value="gpt-oss:latest", label_visibility="collapsed")
+    if backend == "Local (Ollama)":
+        model_name = st.text_input("Model name", value="gpt-oss:latest", label_visibility="collapsed")
     else:
-        model_name = st.text_input("모델 이름", value="gpt-4o-mini", label_visibility="collapsed")
+        model_name = st.text_input("Model name", value="gpt-4o-mini", label_visibility="collapsed")
 
     model_rows = get_rows_for_model(rows, model_name)
 
     if not model_rows:
-        st.warning("해당 모델의 데이터가 없습니다.")
+        st.warning("No data found for this model name.")
     elif all(str(r.get("model", "")).strip() == "" for r in model_rows):
-        st.caption("기본 데이터셋 사용 중")
+        st.caption("Using default dataset (blank model field)")
 
     st.divider()
+    st.markdown("### Options")
+    st.session_state.use_streaming = st.toggle("Streaming output", value=st.session_state.use_streaming)
+    st.session_state.show_evaluation = st.toggle("Show evaluation", value=st.session_state.show_evaluation)
 
-    if st.button("대화 초기화", use_container_width=True):
+    st.divider()
+    if st.button("Clear conversation", use_container_width=True):
         st.session_state.chat_history = []
         st.rerun()
 
 
-# ── Pages ─────────────────────────────────────────────────────────────────────
-if page == "대화":
+# ── Main layout: chat area ABOVE, input bar BELOW ────────────────────────────
+if not rows:
+    st.error(f"Data file not found: `{DATA_FILE.name}`. Place it in the same folder as app.py.")
+    st.stop()
 
-    if not rows:
-        st.error(f"데이터 파일을 찾을 수 없습니다: `{DATA_FILE.name}`")
-        st.stop()
+# Define containers top-to-bottom so chat always renders above input.
+chat_area = st.container()
+input_area = st.container()
 
-    # Chat history
+# ── Input bar (defined second = renders below chat) ──────────────────────────
+with input_area:
+    st.markdown('<div class="input-bar">', unsafe_allow_html=True)
+    col_input, col_btn = st.columns([6, 1], vertical_alignment="bottom")
+    with col_input:
+        user_prompt = st.text_area(
+            "prompt",
+            height=72,
+            placeholder="Describe the clinical situation…",
+            label_visibility="collapsed",
+            key="input_box",
+        )
+    with col_btn:
+        send = st.button("Send →", type="primary", use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ── Chat area (defined first = renders above input) ───────────────────────────
+with chat_area:
     if not st.session_state.chat_history:
         st.markdown("""
-        <div class="welcome-card">
-            <div class="icon">🩺</div>
+        <div class="welcome-wrap">
+            <div class="w-icon">🩺</div>
             <h2>Medical AI Assistant</h2>
-            <p>임상 상황을 설명해 주세요. AI가 의사결정을 지원하는 응답을 제공합니다.</p>
+            <p>Describe a clinical situation and the AI will provide a decision-support response.</p>
         </div>
         """, unsafe_allow_html=True)
     else:
         for msg in st.session_state.chat_history:
-            render_message(msg["role"], msg["content"])
+            st.markdown(bubble_html(msg["role"], msg["content"]), unsafe_allow_html=True)
 
             if msg["role"] == "ai" and msg.get("meta") and st.session_state.show_evaluation:
                 meta = msg["meta"]
-                with st.expander("평가 결과 보기"):
-                    st.markdown(f"**정답 기준:** {meta.get('correct_answer', '—')}")
+                with st.expander("View evaluation"):
+                    st.markdown(f"**Reference answer:** {meta.get('correct_answer', '—')}")
                     is_correct = meta.get("is_correct")
                     if is_correct is True:
-                        st.success("적절한 응답")
+                        st.success("Appropriate response")
                     elif is_correct is False:
-                        st.error("부적절하거나 과도하게 단정적인 응답")
+                        st.error("Inappropriate or overconfident response")
                     else:
-                        st.info("평가값 없음")
+                        st.info("No evaluation available")
                     st.json({
                         "model": meta.get("model", ""),
                         "category": meta.get("category", ""),
                         "framing": meta.get("framing", ""),
                     })
 
-    # ── Input area ────────────────────────────────────────────────────────────
-    st.divider()
-    col_input, col_btn = st.columns([5, 1], vertical_alignment="bottom")
-
-    with col_input:
-        user_prompt = st.text_area(
-            "message",
-            height=80,
-            placeholder="임상 상황을 입력하세요…",
-            label_visibility="collapsed",
-            key="input_box",
-        )
-
-    with col_btn:
-        send = st.button("전송 →", type="primary", use_container_width=True)
-
+    # ── Streaming happens here, inside chat_area, so it appears above input ──
     if send:
         if not user_prompt.strip():
-            st.warning("질문을 입력해 주세요.")
+            st.warning("Please enter a prompt before sending.")
             st.stop()
 
         matched = find_match(user_prompt, model_rows)
         if matched is None:
-            st.error("일치하는 사전 계산 응답을 찾지 못했습니다. 프롬프트 문구를 확인해 주세요.")
+            st.error("No matching pre-computed response found. Check the prompt wording.")
             st.stop()
 
-        st.session_state.chat_history.append({"role": "user", "content": user_prompt, "meta": None})
+        # Show the new user bubble immediately
+        st.markdown(bubble_html("user", user_prompt), unsafe_allow_html=True)
 
-        # Stream into a placeholder, then freeze into history
-        render_message("user", user_prompt)
+        # Stream AI response inside chat_area (above the input bar)
         st.markdown(
-            '<div class="chat-ai"><div class="avatar">🩺</div>',
+            '<div class="chat-ai"><div class="av">🩺</div>',
             unsafe_allow_html=True,
         )
         ai_placeholder = st.empty()
@@ -421,42 +423,7 @@ if page == "대화":
 
         stream_text(matched["response"], ai_placeholder)
 
-        st.session_state.chat_history.append({
-            "role": "ai",
-            "content": matched["response"],
-            "meta": matched,
-        })
-
+        # Commit to history then rerender cleanly
+        st.session_state.chat_history.append({"role": "user", "content": user_prompt, "meta": None})
+        st.session_state.chat_history.append({"role": "ai", "content": matched["response"], "meta": matched})
         st.rerun()
-
-
-elif page == "설정":
-
-    st.markdown('<div class="page-header"><h1>설정</h1><p>응답 출력 방식을 조정합니다.</p></div>', unsafe_allow_html=True)
-
-    st.markdown("#### 출력 방식")
-
-    st.session_state.use_streaming = st.toggle(
-        "실시간 스트리밍",
-        value=bool(st.session_state.use_streaming),
-        help="글자가 하나씩 출력되는 타이핑 효과를 켜거나 끕니다.",
-    )
-
-    st.session_state.show_evaluation = st.toggle(
-        "정답 기준 및 평가 표시",
-        value=bool(st.session_state.show_evaluation),
-        help="각 응답 아래에 사전 평가 결과를 펼칠 수 있는 섹션을 표시합니다.",
-    )
-
-    st.divider()
-    st.markdown("#### 파라미터 (표시 전용)")
-    st.caption("이 데모는 사전 계산된 응답을 사용하므로 아래 값은 실제 출력에 영향을 주지 않습니다.")
-
-    st.session_state.temperature = st.slider(
-        "Temperature",
-        0.0, 1.5, float(st.session_state.temperature), 0.1,
-    )
-    st.session_state.max_tokens = st.slider(
-        "Max tokens",
-        100, 3000, int(st.session_state.max_tokens), 100,
-    )
